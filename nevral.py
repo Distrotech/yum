@@ -384,25 +384,46 @@ class nevral:
                                 whatprovides = _ts.dbMatch('provides', reqname)
 
                             if whatprovides and whatprovides.count() != 0:
+                                log(5, 'Found some provides for %s' % (reqname))
                                 for provhdr in whatprovides:
-                                    if self.state(provhdr[rpm.RPMTAG_NAME],provhdr[rpm.RPMTAG_ARCH]) in ('e','ed'):
+                                    if self.state(provhdr[rpm.RPMTAG_NAME],provhdr[rpm.RPMTAG_ARCH]) in ['e','ed']:
                                         ((e,v,r,a,l,i),s)=rpmDBInfo._get_data(name)
                                         self.add((name,e,v,r,a,l,i),'ed')
                                         log(4, 'Got Erase Dep: %s, %s' %(name, a))
                                         CheckDeps=1
                                     else:
-                                        unresolvable = 1
-                                        if clientStuff.nameInExcludes(reqname):
-                                            errors.append('package %s needs %s that has been excluded' % (name, reqname))
-                                            log(5, 'Got to an unresolvable dep - %s' % (name))
+                                    # help us obi-wan - you're our only hope!
+                                        log(4, 'Cannot find a resolution attempting update out of loop on %s' % (name))
+                                        if self.exists(name):
+                                            archlist = self.bestArchsByVersion(name)
+                                            if len(archlist) > 0:
+                                                arch = archwork.bestarch(archlist)
+                                                self.setPkgState(name, arch, 'ud')
+                                                log(4, 'Upgrading %s, %s' % (name, arch))                                
                                         else:
-                                            errors.append('package %s needs %s (not provided)' % (name, rpmUtils.formatRequire(reqname, reqversion, flags)))
+                                        # it's as if a thousand dependencies cried out and were suddenly silenced!
+                                            unresolvable = 1
+                                            if clientStuff.nameInExcludes(reqname):
+                                                errors.append('package %s needs %s that has been excluded' % (name, reqname))
+                                            else:
+                                                errors.append('package %s needs %s (not provided)' % (name, rpmUtils.formatRequire(reqname, reqversion, flags)))
                             else:
-                                unresolvable = 1
-                                if clientStuff.nameInExcludes(reqname):
-                                    errors.append('package %s needs %s that has been excluded' % (name, reqname))
+                                # help us obi-wan - you're our only hope!
+                                log(4, 'Cannot find a resolution attempting update out of loop on %s' % (name))
+                                if self.exists(name):
+                                    archlist = self.bestArchsByVersion(name)
+                                    if len(archlist) > 0:
+                                        arch = archwork.bestarch(archlist)
+                                        self.setPkgState(name, arch, 'ud')
+                                        log(4, 'Upgrading %s, %s' % (name, arch))                                
                                 else:
-                                    errors.append('package %s needs %s (not provided)' % (name, rpmUtils.formatRequire(reqname, reqversion, flags)))
+                                    # it's as if a thousand dependencies cried out and were suddenly silenced!
+                                    unresolvable = 1
+                                    if clientStuff.nameInExcludes(reqname):
+                                        errors.append('package %s needs %s that has been excluded' % (name, reqname))
+                                    else:
+                                        errors.append('package %s needs %s (not provided)' % (name, rpmUtils.formatRequire(reqname, reqversion, flags)))
+                                        
                 elif sense == rpm.RPMDEP_SENSE_CONFLICTS:
                     # much more shit should happen here. specifically:
                     # if you have a conflict b/t two pkgs, try to upgrade the reqname pkg. - see if that solves the problem
