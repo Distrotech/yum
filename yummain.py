@@ -33,7 +33,7 @@ from logger import Logger
 from config import yumconf
 from i18n import _
 
-__version__='2.0.3'
+__version__='2.1'
 
 def parseCmdArgs(args):
    
@@ -340,7 +340,7 @@ def usage():
           -d [debug level] - set the debugging level
           -y answer yes to all questions
           -t be tolerant about errors in package commands
-          -R [time in minutes] - set the max amount of time to randonly run in.
+          -R [time in minutes] - set the max amount of time to randomly run in.
           -C run from cache only - do not update the cache
           --installroot=[path] - set the install root (default '/')
           --version - output the version of yum

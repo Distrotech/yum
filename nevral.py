@@ -356,8 +356,17 @@ class nevral:
                                 archlist = self.bestArchsByVersion(reqname)
                                 if len(archlist) > 0:
                                     arch = archwork.bestarch(archlist)
-                                    self.setPkgState(reqname, arch, 'ud')
-                                    log(4, 'Got Extra Dep: %s, %s' %(reqname,arch))
+                                    if self.state(reqname, arch) not in ['ud','u','i']:
+                                        self.setPkgState(reqname, arch, 'ud')
+                                        log(4, 'Got Extra Dep: %s, %s' %(reqname,arch))
+                                    else:
+                                        log(4, '%s already to be installed/upgraded, trying to upgrade the requiring pkg' % (reqname))
+                                        if self.exists(name):
+                                            archlist = self.bestArchsByVersion(name)
+                                            if len(archlist) > 0:
+                                                arch = archwork.bestarch(archlist)
+                                                self.setPkgState(name, arch, 'ud')
+                                                log(4, 'Upgrading %s, %s' % (name, arch))
                                 else:
                                     unresolvable = 1
                                     log(4, 'unresolvable - %s needs %s' % (name, rpmUtils.formatRequire(reqname, reqversion, flags)))

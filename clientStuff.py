@@ -968,7 +968,7 @@ def create_final_ts(tsInfo):
                     hdrr = pkghdr['release']
                     (rpme, rpmv, rpmr) = rpmobj.evr()
                     if (rpme, rpmv, rpmr) != (hdre, hdrv, hdrr):
-                        errorlog(0, 'NonMatching RPM version, %s, removing.' %(rpmloc))
+                        errorlog(2, 'NonMatching RPM version, %s, removing.' %(rpmloc))
                         os.unlink(rpmloc)
 
             # gotten rid of the bad ones
