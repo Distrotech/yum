@@ -117,7 +117,7 @@ class yumconf:
         if self._getoption('main', 'retries') != None:
             self.retries = self.cfg.getint('main','retries')
         if self._getoption('main', 'installroot') != None:
-            self.throttle = self._getoption('main','installroot')
+            self.installroot = self._getoption('main','installroot')
 
         # figure out what the releasever really is from the distroverpkg
         self.yumvar['releasever'] = self._getsysver()

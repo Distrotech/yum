@@ -1,5 +1,19 @@
 #!/usr/bin/python -tt
 # yum-transaction
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Library General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+# copyright 2003 Duke University
 
 
 import os
@@ -121,7 +135,9 @@ def main(args):
             print ytxn.name
             
             result = runTransaction(ytxn, options)
-
+            if not result:
+                print 'failed %s' % ytxn.name
+            
 
 def runTransaction(ytxn, options):
     """this should run any one transaction and return a result code"""
@@ -135,7 +151,7 @@ def runTransaction(ytxn, options):
     # create the lists of stuff we'll need
     # act like -y is always there
 
-    (log, errorlog, filelog, conf) = txnConfig(ytxn.config(), options)
+    (log, errorlog, filelog, conf) = txnConfig(ytxn.config, options)
     pkgaction.log = log
     clientStuff.log = log
     nevral.log = log
@@ -196,7 +212,7 @@ def runTransaction(ytxn, options):
     #  obslist == packages obsoleting a package we have installed
     ################################################################################
     
-    (pkgprocesses, groupprocess) = ytxn.processes()
+    (pkgprocesses, groupprocesses) = ytxn.processes()
     #########
     ## This should go through the above and update the tsInfo nevral
     # - might want to consider what will need to happen and how to order processes
@@ -207,14 +223,14 @@ def runTransaction(ytxn, options):
     log(2, _('Finding updated packages'))
     (uplist, newlist, nulist) = clientStuff.getupdatedhdrlist(HeaderInfo, rpmDBInfo)
 
-    if process in ['upgrade', 'groupupgrade']:
+    if 'upgrade' in pkgprocesses:
         log(2, _('Finding obsoleted packages'))
         obsoleting, obsoleted = clientStuff.returnObsoletes(HeaderInfo, rpmDBInfo, nulist)
     else:
         obsoleting = {}
         obsoleted = {}
 
-    if process in ['groupupdate', 'groupinstall', 'grouplist', 'groupupgrade']:
+    if len(groupprocesses) > 0:
         servers_with_groups = clientStuff.get_groups_from_servers(serverlist)
         GroupInfo = yumcomps.Groups_Info(conf.overwrite_groups)
         if len(servers_with_groups) > 0:
@@ -228,7 +244,8 @@ def runTransaction(ytxn, options):
         else:
             errorlog(0, 'No groups provided or accessible on any server.')
             errorlog(1, 'Exiting.')
-            sys.exit(1)
+            return 0
+
     
     log(3, 'nulist = %s' % len(nulist))
     log(3, 'uplist = %s' % len(uplist))
@@ -243,9 +260,38 @@ def runTransaction(ytxn, options):
     # obsoletes. We should be able to do everything we want from here 
     # w/o getting anymore header info
     ##################################################################
-
-    clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
+    if len(groupprocesses) > 0:
+        if 'install' in groupprocesses:
+            cmds = ['groupinstall'] + ytxn.groupsInstall()
+            clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
                             HeaderInfo, rpmDBInfo, obsoleted)
+        if 'update' in groupprocesses:
+            cmds = ['groupupdate'] + ytxn.groupsUpdate()
+            clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
+                            HeaderInfo, rpmDBInfo, obsoleted)
+        if 'remove' in groupprocesses:
+            cmds = ['groupremove'] + ytxn.groupsRemove()
+            clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
+                            HeaderInfo, rpmDBInfo, obsoleted)
+    
+    if len(pkgprocesses) > 0:
+        if 'install' in pkgprocesses:
+            cmds = ['install'] + ytxn.pkgsInstall()
+            clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
+                            HeaderInfo, rpmDBInfo, obsoleted)
+        if 'update' in pkgprocesses:
+            cmds = ['update'] + ytxn.pkgsUpdate()
+            clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
+                            HeaderInfo, rpmDBInfo, obsoleted)
+        if 'install' in pkgprocesses:
+            cmds = ['upgrade'] + ytxn.pkgsUpgrade()
+            clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
+                            HeaderInfo, rpmDBInfo, obsoleted)
+        if 'remove' in pkgprocesses:
+            cmds = ['remove'] + ytxn.pkgsRemove()
+            clientStuff.take_action(cmds, nulist, uplist, newlist, obsoleting, tsInfo,\
+                            HeaderInfo, rpmDBInfo, obsoleted)
+
     # back from taking actions - if we've not exited by this point then we have
     # an action that will install/erase/update something
     
@@ -254,16 +300,14 @@ def runTransaction(ytxn, options):
     # an empty tsInfo then exit and be confused :)
     if len(tsInfo.NAkeys()) < 1:
         log(2, _('No actions to take'))
-        sys.exit(0)
+        return 1
         
     
-    if process not in ('erase', 'remove'):
-        # put available pkgs in tsInfonevral in state 'a'
-        for (name, arch) in nulist:
-            if not tsInfo.exists(name, arch):
-                ((e, v, r, a, l, i), s)=HeaderInfo._get_data(name, arch)
-                log(6,'making available: %s' % name)
-                tsInfo.add((name, e, v, r, arch, l, i), 'a')
+    for (name, arch) in nulist:
+        if not tsInfo.exists(name, arch):
+            ((e, v, r, a, l, i), s)=HeaderInfo._get_data(name, arch)
+            log(6,'making available: %s' % name)
+            tsInfo.add((name, e, v, r, arch, l, i), 'a')
 
     log(2, _('Resolving dependencies'))
     (errorcode, msgs) = tsInfo.resolvedeps(rpmDBInfo)
@@ -283,7 +327,7 @@ def runTransaction(ytxn, options):
     if conf.assumeyes==0:
         if clientStuff.userconfirm():
             errorlog(1, _('Exiting on user command.'))
-            sys.exit(1)
+            return 0
 
     
     # Test run for disk space checks
@@ -315,7 +359,7 @@ def runTransaction(ytxn, options):
             errorlog(0, _('Errors installing:'))
             for error in errors:
                 errorlog(0, error)
-            sys.exit(1)
+            return 0
         tsfin.closeDB()
         del tsfin
         
@@ -331,7 +375,7 @@ def runTransaction(ytxn, options):
         sys.exit(0)
         
     log(2, _('Transaction(s) Complete'))
-    sys.exit(0)
+    return 1
 
 
 def usage():
