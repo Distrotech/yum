@@ -74,7 +74,7 @@ def compatArchList():
     archdict['ia64']=['ia64','noarch', 'i686', 'i386', 'i486', 'i586']
     archdict['s390']=['noarch','s390']
     archdict['s390x']=['noarch','s390','s390x']
-    archdict['x86_64']=['noarch','x86_64','athlon','i386','i486','i586','i686']
+    archdict['x86_64']=['noarch','x86_64','athlon','i386','i486','i586','i686', 'ia32e']
     archdict['parisc']=['hppa2.0','hppa1.2','hppa1.2','hppa1.1','hppa1.0','paris','noarch']
     myarch=getArch()
     if archdict.has_key(myarch):
