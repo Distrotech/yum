@@ -33,6 +33,18 @@ class YumTransaction:
         self._parseTrans(base_node)
         
     
+    def processes(self):
+        processlist = []
+        groupsprocesslist = []
+        for process in ['install', 'update', 'upgrade', 'remove']:
+            if len(self.pkgs[process]) > 0:
+                processlist.append(process)
+        for process in ['install', 'update', 'remove']:
+            if len(self.groups[process]) > 0:
+                groupsprocesslist.append(process)
+        
+        return (processlist, groupsprocesslist)
+        
     def pkgsUpdate(self):
         return self.pkgs['update']
     

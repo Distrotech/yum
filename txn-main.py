@@ -23,24 +23,24 @@ from i18n import _
 
 __version__='2.1'
 
-def parseCmdArgs(args):
-    commands = {}
-    commands['testmode'] = 0
+def getCommands(args):
+    options = {}
+    options['testmode'] = 0
     
     try:
-        gopts, cmds = getopt.getopt(args, 'e:d:', ['test, version, installroot='])
+        gopts, files = getopt.getopt(args, 'e:d:', ['test, version, installroot='])
     except getopt.error, e:
         print _('Options Error: %s') % e
         usage()
 
         for o,a in gopts:
             if o == '-d':
-                commands['debuglevel'] = int(a)
+                options['debuglevel'] = int(a)
             elif o == '-e':
-                commands['errorlevel'] = int(a)
+                options['errorlevel'] = int(a)
             elif o == '--installroot':
                 if os.access(a, os.W_OK):
-                    commands['installroot'] = a
+                    options['installroot'] = a
                 else:
                     print _('Error: installroot %s cannot be accessed writable') % a
                     sys.exit(1)
@@ -48,20 +48,58 @@ def parseCmdArgs(args):
                 print __version__
                 sys.exit()
             elif o == '--test':
-                commands['testmode']=1
+                options['testmode']=1
                 
     except ValueError, e:
         print _('Options Error: %s') % e
         usage()
         
-    return (commands, cmds)
+    return (options, files)
     
+def txnConfig(txnconfigfile, options):
+    """take the config file and global options and setup logs, configs, etc"""
+    
+    # setup our errorlog object 
+    errorlog=Logger(threshold=2, file_object=sys.stderr)
+    
+    if options.has_key('installroot'):
+        if os.access(options['installroot'] + configfile, os.R_OK):
+            txnconfigfile = options['installroot'] + configfile
+    else:
+        if not os.access(txnconfigfile, os.R_OK):
+            errorlog(0, _('Cannot find any conf file.'))
+            sys.exit(1)
+    
+    conf=yumconf(configfile=txnconfigfile)
+    conf.yumversion = __version__
+
+    # we'd like to have a log object now
+    log=Logger(threshold=conf.debuglevel, file_object=sys.stdout)
+
+    # syslog-style log
+    logfile=open(conf.logfile,"a")
+    filelog=Logger(threshold=10, file_object=logfile,preprefix=clientStuff.printtime())
+
+    if options.has_key('debuglevel'):
+        log.threshold=options['debuglevel']
+        conf.debuglevel=options['debuglevel']
+    if options.has_key('errorlevel'):
+        errorlog.threshold=options['errorlevel']
+        conf.errorlevel=options['errorlevel']
+    if options.has_key('installroot'):
+        conf.installroot=options['installroot']
+    conf.assumeyes=1
+    conf.tolerant=1
+
+    return (log, errorlog, filelog, conf)
+    
+
 def main(args):
     """get all the files together, control the main set of transactions"""
     locale.setlocale(locale.LC_ALL, '')
     # take the yum xml file as an argument and --test, debug and error levels
     #script commands:
-    (commands, cmds) = parseCmdArgs(args)
+    (options, cmds) = getCommands(args)
     ytxnFileList = []
     for filename in cmds:
         if os.access(filename, os.R_OK):
@@ -82,10 +120,10 @@ def main(args):
         for ytxn in ytxnfile.transactionList():
             print ytxn.name
             
-            #result = runTransaction(ytxn)
+            result = runTransaction(ytxn, options)
 
 
-def runTransaction(ytxn):
+def runTransaction(ytxn, options):
     """this should run any one transaction and return a result code"""
     
     # setup logs
@@ -97,7 +135,7 @@ def runTransaction(ytxn):
     # create the lists of stuff we'll need
     # act like -y is always there
 
-
+    (log, errorlog, filelog, conf) = txnConfig(ytxn.config(), options)
     pkgaction.log = log
     clientStuff.log = log
     nevral.log = log
@@ -157,12 +195,18 @@ def runTransaction(ytxn):
     #  nulist == combination of the two
     #  obslist == packages obsoleting a package we have installed
     ################################################################################
+    
+    (pkgprocesses, groupprocess) = ytxn.processes()
+    #########
+    ## This should go through the above and update the tsInfo nevral
+    # - might want to consider what will need to happen and how to order processes
+    #  - ie: cleans
+    #        all group actions
+    #        all pkg actions
+    
     log(2, _('Finding updated packages'))
     (uplist, newlist, nulist) = clientStuff.getupdatedhdrlist(HeaderInfo, rpmDBInfo)
-    if process != 'clean':
-        log(2, _('Downloading needed headers'))
-        clientStuff.download_headers(HeaderInfo, nulist)
-        
+
     if process in ['upgrade', 'groupupgrade']:
         log(2, _('Finding obsoleted packages'))
         obsoleting, obsoleted = clientStuff.returnObsoletes(HeaderInfo, rpmDBInfo, nulist)
