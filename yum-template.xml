@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<yum>
+  <transaction>
+    <config>/path/to/yum.conf</config>
+    <package action='update'>foo</package>
+    <package action='install'>gcc*</package>
+    <group action='update'>Base</group>
+    <group action='install'>Workstation Common</group>
+  </transaction>
+  <transaction name="bar transaction">
+    <config>/another/yum.conf</config>
+    <package action='remove'>logwatch</package>
+    <package action='remove'>rhn-applet</package>
+    <package action='remove'>up2date</package>
+  </transaction>
+    <transaction name="baz txn">
+    <package action='update'>bash</package>
+    <package action='update'>*</package>
+    <group action='update'>Base</group>
+    <group action='install'>Workstation Common</group>
+  </transaction>
+</yum>
