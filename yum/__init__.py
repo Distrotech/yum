@@ -830,9 +830,10 @@ class YumBase(depsolve.Depsolve):
         if re.match('.*[\*,\[,\],\{,\},\?,\+].*', arg):
             restring = fnmatch.translate(arg)
         else:
-            restring = arg
-        
+            restring = re.escape(arg)
+            
         return restring
+           
         
     def searchPackages(self, fields, criteria, callback=None):
         """Search specified fields for matches to criteria
