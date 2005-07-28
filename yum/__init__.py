@@ -416,30 +416,49 @@ class YumBase(depsolve.Depsolve):
     def downloadPkgs(self, pkglist, callback=None):
         """download list of package objects handed to you, output based on
            callback, raise yum.Errors.YumBaseError on problems"""
-
+           
+        errors = {}
+        repo_cached = 0
         remote_pkgs = []
         for po in pkglist:
             if hasattr(po, 'pkgtype') and po.pkgtype == 'local':
                 continue
-                    
+
             local = po.localPkg()
             if os.path.exists(local):
                 cursize = os.stat(local)[6]
                 totsize = int(po.size())
                 try:
                     result = self.verifyPkg(local, po, raiseError=1)
-                except URLGrabError, e:
+                except URLGrabError, e: # fails the check
+                    
+                    repo = self.repos.getRepo(po.repoid)
+                    if repo.cache:
+                        repo_cached = True
+                        msg = 'package fails checksum but caching is enabled for %s' % repo.id
+                        if not errors.has_key(po): errors[po] = []
+                        errors[po].append(msg)
+                        
                     if cursize >= totsize: # keep it around for regetting
                         os.unlink(local)
+                        
                 else:
                     if result:
                         continue
                     else:
                         if cursize >= totsize: # keep it around for regetting
                             os.unlink(local)
+                    
             remote_pkgs.append(po)
 
-        errors = {}
+            # caching is enabled and the package 
+            # just failed to check out there's no 
+            # way to save this, report the error and return
+            if (self.conf.cache or repo_cached) and errors:
+                return errors
+                
+            
+
         i = 0
         for po in remote_pkgs:
             i += 1
