@@ -26,6 +26,7 @@ import errno
 import time
 import sre_constants
 import glob
+from ConfigParser import ParsingError
 
 
 import Errors
