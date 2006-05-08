@@ -131,8 +131,12 @@ class YumBase(depsolve.Depsolve):
             if os.path.isdir(reposdir):
                 #XXX: why can't we just pass the list of files?
                 files = ' '.join(glob.glob('%s/*.repo' % reposdir))
-                #XXX: error catching here
-                parser.read(files)
+
+                try:
+                    parser.read(files)
+                except ConfigParser.ParsingError, e:
+                    msg = str(e)
+                    raise Errors.ConfigError, msg
 
         # Check sections in the .repo files that were just slurped up
         for section in parser.sections():
