@@ -32,6 +32,7 @@ from repomd import packageSack
 from packages import YumAvailablePackage
 import mdcache
 import parser
+import storagefactory
 
 _is_fnmatch_pattern = re.compile(r"[*?[]").search
 
@@ -95,27 +96,9 @@ class RepoStorage:
                         # of repo options/misc data
         self.callback = None # progress callback used for populateSack() for importing the xml files
         self.cache = 0
-        # Check to see if we can import sqlite stuff
-        try:
-            import sqlitecache
-            import sqlitesack
-        except ImportError:
-            self.sqlite = False
-        else:
-            self.sqlite = True
-            self.sqlitecache = sqlitecache
-            
-        self._selectSackType()
+        self.storage = storagefactory.GetStorage()
+        self.pkgSack = self.storage.GetPackageSack()
     
-    def _selectSackType(self):
-
-        if (self.sqlite):
-            import sqlitecache
-            import sqlitesack
-            self.pkgSack = sqlitesack.YumSqlitePackageSack(sqlitesack.YumAvailablePackageSqlite)
-        else:
-            self.pkgSack = YumPackageSack(YumAvailablePackage)
-        
     def __str__(self):
         return str(self.repos.keys())
     
@@ -267,17 +250,12 @@ class RepoStorage:
          
         for repo in myrepos:
             if not hasattr(repo, 'cacheHandler'):
-                if (self.sqlite):
-                    repo.cacheHandler = self.sqlitecache.RepodataParserSqlite(
-                            storedir=repo.cachedir, 
-                            repoid=repo.id,
-                            callback=callback,
-                            )
-                else:
-                    repo.cacheHandler = mdcache.RepodataParser(
-                            storedir=repo.cachedir, 
-                            callback=callback
-                            )
+                repo.cacheHandler = self.storage.GetCacheHandler(
+                    storedir=repo.cachedir,
+                    repoid=repo.id,
+                    callback=callback,
+                    )
+
             for item in data:
                 if self.pkgSack.added.has_key(repo.id):
                     if item in self.pkgSack.added[repo.id]:

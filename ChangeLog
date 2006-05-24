@@ -1,3 +1,13 @@
+2006-05-24  Tambet Ingo  <tambet@ximian.com>
+
+	* yum/storagefactory.py: Implement. Chooses the fastest
+	available cache.
+
+	* yum/repos.py: Remove the cache choosing and creation from
+	here and move it to storagefactory.py.
+
+	* yum/__init__.py: Log the storage being used.
+
 2006-04-26 11:47  skvidal
 
 	* yum.spec, yum/__init__.py: 
