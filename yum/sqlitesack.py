@@ -102,7 +102,7 @@ class YumAvailablePackageSqlite(YumAvailablePackage):
             dirname = ob['dirname']
             filetypes = decodefiletypelist(ob['filetypes'])
             filenames = decodefilenamelist(ob['filenames'])
-            while(filenames):
+            while(filetypes):
                 if dirname:
                     filename = dirname+'/'+filenames.pop()
                 else:
@@ -597,7 +597,7 @@ def encodefilenamelist(filenamelist):
 
 # Return a list representing filestring (filenames can not contain /)
 def decodefilenamelist(filenamestring):
-    return misc.unique(filenamestring.split('/'))
+    return filenamestring.split('/')
 
 # Return a string representing filetypeslist
 # filetypes should be file, dir or ghost
