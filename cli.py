@@ -566,7 +566,7 @@ class YumBaseCli(yum.YumBase, output.YumOutput):
                     self.verbose_logger.log(yum.logginglevels.DEBUG_3,
                         'Requested dep: %s is provided by installed package', str(arg))
                     
-                    break # we don't need to look, we have it
+                    continue # we don't need to look, we have it
                 try:
                     mypkgs = self.returnPackagesByDep(arg)
                 except yum.Errors.YumBaseError, e:
