@@ -1,3 +1,46 @@
+2007-04-10 00:01  skvidal
+
+	* yum.spec, yum/__init__.py: mark as 3.0.6
+
+2007-04-08 23:05  skvidal
+
+	* rpmUtils/updates.py: 
+	make sure the pseudo-arches get this fix, too.
+	
+	bugger
+
+2007-04-08 16:45  skvidal
+
+	* rpmUtils/updates.py: closes rh bug:235632 make sure we consider
+	noarch pkgs  when looking at things that can update noarch->x86_64
+	and x86_64->noarch
+
+2007-04-07 23:53  skvidal
+
+	* cli.py: fix for rh bug: 235572 - when doing install-by-dep make
+	sure we look at only the best pkgs from the lists - which means
+	sensible archs and best versions
+
+2007-04-02 14:09  skvidal
+
+	* cli.py: 
+	Patch from Ville Skyttä fixes rh bug: 234807
+	
+	if you tried to do: yum install provide-of-something-you-have
+	provide-of-something-you-don't
+	
+	it would never get the second item, only the first.
+
+2007-03-30 13:05  katzj
+
+	* yum/sqlitesack.py: fix filelist handling to not mangle dirs vs
+	files
+
+2007-03-15 00:26  skvidal
+
+	* ChangeLog: 
+	check in changelog
+
 2007-03-14 15:50  skvidal
 
 	* yum.spec, yum/__init__.py: 
