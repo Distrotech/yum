@@ -601,7 +601,8 @@ class YumHeaderPackage(YumAvailablePackage):
         self.pkgtup = self._pkgtup()
         self.summary = self.tagByName('summary')
         self.description = self.tagByName('description')
-        self.pkgid = self.tagByName(rpm.RPMTAG_SHA1HEADER)
+        self.pkgid = self.tagByName(rpm.RPMTAG_SHA1HEADER) or \
+                     self.tagByName(rpm.RPMTAG_SIGMD5)
         self.__mode_cache = {}
         self.__prcoPopulated = False
 
