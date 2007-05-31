@@ -431,8 +431,11 @@ class YumBase(depsolve.Depsolve):
         
         necessary = False
         for repo in self.repos.listEnabled():
-            if 'filelists' in repo.sack.added[repo]:
-                continue
+            if repo in repo.sack.added.keys():
+                if 'filelists' in repo.sack.added[repo]:
+                    continue
+                else:
+                    necessary = True
             else:
                 necessary = True
         
